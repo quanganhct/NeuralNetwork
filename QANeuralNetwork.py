@@ -68,11 +68,14 @@ class NeuralNetwork:
         print("Cost:", vcost)
         print("Z:", z)
         print("A:", a)
+        print("Mat:", Mat)
         delta = r - Y
         delta = delta.T
         grad = np.dot(delta, z[-2]).T
         theta_grad = grad.flatten()
         for i in range(len(Mat)-1, 0, -1):
+            print("Theta x Delta:", np.dot(Mat[i], delta))
+            print("Derivation:", self.layers[i].backward(z[i]))
             delta = np.dot(Mat[i], delta) * self.layers[i].backward(z[i])
             if i>=2:
                 grad = np.dot(delta, a[i-2]).T
