@@ -12,6 +12,8 @@ class NeuralNetwork:
         self.layers = []
         
     def addLayer(self, _layer):
+        if type(_layer) is not HiddenLayer:
+            raise ValueError('Not instance of HiddenLayer')
         self.layers.append(_layer)
         
     def getSizeLayers(self, X, Y):
@@ -45,11 +47,14 @@ class NeuralNetwork:
             last_index = L[i]*L[i+1]
         return Mat
         
-    def cost(self, Mat, data):
-        if type(data) is not np.ndarray:
-            r = np.array(data)
+    def cost(self, Mat, X, Y):
+        if type(X) is not np.ndarray:
+            X = np.array(X)
+            r = np.array(X)
         else:
-            r = data
+            r = X
+        if type(Y) is not np.ndarray:
+            Y = np.array(Y)
         z = []
         a = []
         for i in range(0, len(Mat)):
@@ -58,21 +63,23 @@ class NeuralNetwork:
             r = self.layers[i].forward(multiplication)
             a.append(r)
             
-        vcost = np.array(data).flatten() - r.flatten()
+        vcost = X.flatten() - r.flatten()
         vcost = (vcost**2).sum() / (r.shape[0]*r.shape[1])
         print("Cost:", vcost)
-        delta = r - np.matrix(data)
-        delta = delta.getT()
-        grad = (delta * z[-2]).getT()
-        theta_grad = grad.flatten().getT()
+        print("Z:", z)
+        print("A:", a)
+        delta = r - Y
+        delta = delta.T
+        grad = np.dot(delta, z[-2]).T
+        theta_grad = grad.flatten()
         for i in range(len(Mat)-1, 0, -1):
-            delta = np.dot(Mat[i], delta) * backwardPropagationDerivativeFunction(i-1, z[i-1].getT()))
+            delta = np.dot(Mat[i], delta) * self.layers[i].backward(z[i])
             if i>=2:
-                grad = (delta * forwardActivationFunction(i-2, z[i-2])).getT()
+                grad = np.dot(delta, a[i-2]).T
             else:
-                grad = (delta * data).getT()
-            grad = grad/len(data)
-            theta_grad = np.concatenate((grad.flatten().getT(), theta_grad))
+                grad = (delta * X).T
+            grad = grad/len(X)
+            theta_grad = np.concatenate((grad.flatten(), theta_grad))
         return vcost, theta_grad
         
     def fit(self, X, Y, iterations=300):
@@ -133,4 +140,19 @@ class HiddenLayer:
         return np.array(l).T
 
 #%%
-    
+def iden(X):
+    return X
+#%%    
+nn = NeuralNetwork()
+hd = HiddenLayer(size = 3)
+hd2 = HiddenLayer(size = 2, fs=iden, dfs=iden)
+nn.addLayer(hd)
+nn.addLayer(hd2)
+X = [[1, 2], [1, 2]]
+Y = [[1, 2], [1, 2]]
+Mat = nn.initMat([2, 3, 2])
+nn.cost(Mat, X, Y)
+#%%
+
+
+
