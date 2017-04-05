@@ -8,6 +8,10 @@ Created on Fri Mar 10 09:57:05 2017
 import numpy as np
 
 class NeuralNetwork:
+    
+    def iden(X, step):
+        return X
+        
     def __init__(self):
         self.layers = []
         
@@ -76,27 +80,46 @@ class NeuralNetwork:
         for i in range(len(Mat)-1, 0, -1):
             print("Theta x Delta:", np.dot(Mat[i], delta))
             print("Derivation:", self.layers[i].backward(z[i]))
-            delta = np.dot(Mat[i], delta) * self.layers[i].backward(z[i])
+            delta = np.dot(Mat[i], delta) * self.layers[i-1].backward(z[i-1]).T
             if i>=2:
                 grad = np.dot(delta, a[i-2]).T
             else:
-                grad = (delta * X).T
+                grad = np.dot(delta, X).T
             grad = grad/len(X)
             theta_grad = np.concatenate((grad.flatten(), theta_grad))
         return vcost, theta_grad
         
-    def fit(self, X, Y, iterations=300):
+    def fit(self, X, Y, iterations=300, learningrate=0.001, decayfunction=iden):
         if ((type(X) is not list) or (len(np.array(X).shape) != 2)):
             raise ValueError('X must be 2D list')
         if ((type(Y) is not list) or (len(np.array(Y).shape) != 2)):
             raise ValueError('Y must be 2D list')
             
         S = self.getSizeLayers(X, Y)
-        Theta = self.initMat(S)
+        self.Thetas = self.initMat(S)
+        for i in range(0, iterations):
+            cost, theta_grad = self.cost(self.Thetas, X, Y)
+            Theta = self.flatListMatrix(self.Thetas)
+            Theta = Theta - learningrate*theta_grad
+            self.Thetas = self.deflatListMatrix(Theta, S)
+            learningrate = decayfunction(learningrate, i)
+                    
+    def predict(self, X):
+        return self.forward(X)
         
+    def forward(self, X):
+        if type(X) is not np.ndarray:
+            X = np.array(X)
+            r = np.array(X)
+        else:
+            r = X
+            
+        for i in range(0, len(self.Thetas)):
+            multiplication = np.dot(r, self.Thetas[i])
+            r = self.layers[i].forward(multiplication)
+        return r
         
-    def forward(self, data):
-        return 0
+    
        
 #%%
 class HiddenLayer:
@@ -151,8 +174,8 @@ hd = HiddenLayer(size = 3)
 hd2 = HiddenLayer(size = 2, fs=iden, dfs=iden)
 nn.addLayer(hd)
 nn.addLayer(hd2)
-X = [[1, 2], [1, 2]]
-Y = [[1, 2], [1, 2]]
+X = [[1, 2], [1, 2], [1, 3], [1, 2], [3, 2]]
+Y = [[1, 2], [1, 2], [1, 2], [1, 2], [1, 2]]
 Mat = nn.initMat([2, 3, 2])
 nn.cost(Mat, X, Y)
 #%%
